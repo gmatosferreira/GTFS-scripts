@@ -1,0 +1,156 @@
+# Bus services at Porto airport
+
+## Load Porto airport bbox from OSM
+
+STCP: https://opendata.porto.digital/dataset/horarios-paragens-e-rotas-em-formato-gtfs-stcp/resource/415bf8d5-4c18-40b3-9516-9d9187185ef9?inner_span=True
+Flixbus: https://mobilitydatabase.org/feeds/gtfs/mdb-853
+
+```{r}
+library(osmdata)
+bbox_porto_airport = getbb("Aeroporto Francisco Sá Carneiro, Porto, Portugal")
+bbox_porto_airport
+
+# Preview with mapview
+library(mapview)
+library(sf)
+port_airport_sf = st_as_sfc(st_bbox(c(xmin = bbox_porto_airport[1,1],
+                                      ymin = bbox_porto_airport[2,1],
+                                      xmax = bbox_porto_airport[1,2],
+                                      ymax = bbox_porto_airport[2,2]),
+                                crs = 4326))
+mapview(port_airport_sf)
+```
+
+
+## Load data
+
+```{r}
+feeds <- read.csv("maria_gtfs_porto.csv", stringsAsFactors = FALSE)
+feeds$start <- as.Date(feeds$start)
+feeds$end   <- as.Date(feeds$end)
+feeds$shapes <- as.logical( feeds$shapes )
+feeds
+```
+
+```{r}
+# Subset to first row only
+# feeds <- feeds[2, ]
+# Filkter by operator="Flixbus"
+# feeds <- feeds[feeds$operator == "Flixbus", ]
+# feeds <- feeds[feeds$operator == "Autna", ]
+# Subset to rows 1 and 3
+# feeds <- feeds[c(1,3,4,5), ]
+feeds
+```
+
+
+
+## Process GTFS
+
+```{r}
+trips <- data.frame()
+
+aggregated_shapes = data.frame()
+aggregated_stops = data.frame()
+
+
+for (i in seq_len(nrow(feeds))) {
+  op   <- feeds$operator[i]
+  url  <- feeds$url[i]
+  s    <- feeds$start[i]
+  e    <- feeds$end[i]
+  
+  message("=== Processing operator: ", op, " for period ", s, " to ", e, " ===")
+  message("Reading GTFS...")
+  gtfs_raw <- read_gtfs(url)
+  # summary(gtfs_raw)
+  
+  message("Filtering feed by airport area...")
+  gtfs_airport <- gtfs_raw |> filter_feed_by_area(bbox_porto_airport)
+  summary(gtfs_airport)
+  
+  # For each day of 2024, count trips
+  for (day in seq(s, e, by="day")) {
+    
+    message("Processing date: ", as.Date(day))
+    # Try and if error, log error 
+    gtfs_filtered = tryCatch({
+      suppressWarnings({gtfs_airport |> 
+        filter_feed_by_date(day)
+      })
+    }, error = function(e) {
+      message("Error filtering feed by date: ", as.Date(day))
+      return(NULL)
+    })
+    if(!is.null(gtfs_filtered)) {
+      # Add row to trips with count of trips
+      n_trips <- nrow(gtfs_filtered$trips)
+      # message("Number of trips on ", as.Date(day), ": ", n_trips)
+      trips <- rbind(trips, data.frame(
+        operator = op,
+        day = as.Date(day),
+        total_trips = n_trips,
+        stringsAsFactors = FALSE
+      ))
+    }
+  }
+  
+  if (feeds$shapes[i]) {
+    message("Aggregating shapes...")
+    shapes_sf <- shapes_as_sf(gtfs_airport$shapes)
+    shapes_sf$operator <- op
+    aggregated_shapes <- rbind(aggregated_shapes, shapes_sf |> dplyr::select(operator, shape_id, geometry))
+    
+    stops_sf <- stops_as_sf(gtfs_airport$stops) |> # Filter inside port_airport_sf bbox
+      st_intersection(port_airport_sf)
+    stops_sf$operator <- op
+    aggregated_stops <- rbind(aggregated_stops, stops_sf |> dplyr::select(operator, stop_id, stop_code,stop_name))
+  }
+}
+
+# Group by operator name, summing counts
+library(dplyr)
+operator_totals <- trips |> dplyr::group_by(operator) |> dplyr::summarise(
+  total_trips = sum(total_trips),
+  start = min(day),
+  end = max(day), 
+  n_days = n()
+)
+operator_totals
+```
+
+## Display shapes
+
+```{r}
+
+# Set operator==STCP color to 005CB9FF
+aggregated_shapes[aggregated_shapes$operator == "STCP", "color"] <- "#005CB9"
+aggregated_shapes[aggregated_shapes$operator == "Autna", "color"] <- "#FFEC00"
+aggregated_shapes[aggregated_shapes$operator == "Flixbus", "color"] <- "#73a400"
+aggregated_shapes[aggregated_shapes$operator == "Metro", "color"] <- "#645B92"
+aggregated_shapes
+
+aggregated_stops[aggregated_stops$operator == "STCP", "color"] <- "#28D8C3"
+aggregated_stops[aggregated_stops$operator == "Autna", "color"] <- "#FFB300"
+aggregated_stops[aggregated_stops$operator == "Flixbus", "color"] <- "#A1C349"
+aggregated_stops[aggregated_stops$operator == "Metro", "color"] <- "#9E90C7"
+aggregated_stops
+
+# port_airport_sftransparent, with border #8c8c8c
+map = mapview(port_airport_sf, color = "#8c8c8c", lwd=2, alpha.regions=0, layer.name="Airport") +
+  mapview(aggregated_shapes, zcol = "operator", color=aggregated_shapes$color, layer.name="Operator routes") +
+  mapview(aggregated_stops, zcol = "operator", col.regions=aggregated_stops$color, cex=3, layer.name="Operator stops")
+
+map
+```
+
+```{r}
+# Store map on html file
+mapshot(map, "maria_gtfs_porto_map.html")
+```
+
+
+
+
+
+

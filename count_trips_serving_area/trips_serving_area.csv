@@ -1,0 +1,6 @@
+operator,start,end,shapes,url
+STCP,2024-01-01,2024-06-14,1,https://opendata.porto.digital/dataset/5275c986-592c-43f5-8f87-aabbd4e4f3a4/resource/f6b85210-3b86-4617-8327-405f50791cf0/download/gtfs-stcp-2023-09.zip
+STCP,2024-09-07,2024-12-31,0,https://opendata.porto.digital/dataset/5275c986-592c-43f5-8f87-aabbd4e4f3a4/resource/53b24b02-108a-453d-b381-2354c482efe8/download/horarios_gtfs_stcp_16_09_2024.zip
+Flixbus,2025-12-01,2025-12-31,1,https://transport.beta.gouv.fr/resources/11681/download
+Autna,2025-12-01,2025-12-31,1,https://drive.google.com/uc?export=download&id=1gah1x10RyFu7gJPweBcCXPd9vcFJFQ7c
+Metro,2025-12-01,2025-12-31,1,https://files.mobilitydatabase.org/mdb-2357/mdb-2357-202502052244/mdb-2357-202502052244.zip
