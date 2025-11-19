@@ -1,4 +1,14 @@
+---
+title: "Bus services at Porto airport"
+output: md_document
+---
+
 # Bus services at Porto airport
+
+```{r}
+library(tidytransit)
+```
+
 
 ## Load Porto airport bbox from OSM
 
@@ -25,7 +35,7 @@ mapview(port_airport_sf)
 ## Load data
 
 ```{r}
-feeds <- read.csv("maria_gtfs_porto.csv", stringsAsFactors = FALSE)
+feeds <- read.csv("trips_serving_area.csv", stringsAsFactors = FALSE)
 feeds$start <- as.Date(feeds$start)
 feeds$end   <- as.Date(feeds$end)
 feeds$shapes <- as.logical( feeds$shapes )
@@ -34,7 +44,7 @@ feeds
 
 ```{r}
 # Subset to first row only
-# feeds <- feeds[2, ]
+feeds <- feeds[1, ]
 # Filkter by operator="Flixbus"
 # feeds <- feeds[feeds$operator == "Flixbus", ]
 # feeds <- feeds[feeds$operator == "Autna", ]
@@ -146,7 +156,7 @@ map
 
 ```{r}
 # Store map on html file
-mapshot(map, "maria_gtfs_porto_map.html")
+# mapshot(map, "maria_gtfs_porto_map.html")
 ```
 
 
