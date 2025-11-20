@@ -13,7 +13,12 @@ library(tidytransit)
 ## Load Porto airport bbox from OSM
 
 STCP: https://opendata.porto.digital/dataset/horarios-paragens-e-rotas-em-formato-gtfs-stcp/resource/415bf8d5-4c18-40b3-9516-9d9187185ef9?inner_span=True
+
 Flixbus: https://mobilitydatabase.org/feeds/gtfs/mdb-853
+
+GTFS databases (with historic):
+- https://www.transit.land/feeds/
+- https://mobilitydatabase.org/
 
 ```{r}
 library(osmdata)
@@ -44,12 +49,12 @@ feeds
 
 ```{r}
 # Subset to first row only
-feeds <- feeds[1, ]
+# feeds <- feeds[2, ]
 # Filkter by operator="Flixbus"
 # feeds <- feeds[feeds$operator == "Flixbus", ]
 # feeds <- feeds[feeds$operator == "Autna", ]
 # Subset to rows 1 and 3
-# feeds <- feeds[c(1,3,4,5), ]
+feeds <- feeds[c(1,3,4,5), ]
 feeds
 ```
 
@@ -73,7 +78,7 @@ for (i in seq_len(nrow(feeds))) {
   message("=== Processing operator: ", op, " for period ", s, " to ", e, " ===")
   message("Reading GTFS...")
   gtfs_raw <- read_gtfs(url)
-  # summary(gtfs_raw)
+  summary(gtfs_raw)
   
   message("Filtering feed by airport area...")
   gtfs_airport <- gtfs_raw |> filter_feed_by_area(bbox_porto_airport)
@@ -156,7 +161,7 @@ map
 
 ```{r}
 # Store map on html file
-# mapshot(map, "maria_gtfs_porto_map.html")
+# mapshot(map, "trips_service_area.html")
 ```
 
 
